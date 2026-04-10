@@ -1,5 +1,6 @@
 package persistent_data_structures;
 
+import fp_types.Result;
 import org.junit.jupiter.api.Test;
 
 import java.util.Optional;

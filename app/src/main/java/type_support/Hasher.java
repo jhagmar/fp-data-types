@@ -1,4 +1,4 @@
-package persistent_data_structures;
+package type_support;
 
 /**
  * An object capable of incrementally computing a hash code over a sequence of elements.

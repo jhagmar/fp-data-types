@@ -1,4 +1,4 @@
-package persistent_data_structures;
+package fp_types;
 
 import java.util.Objects;
 import java.util.Optional;

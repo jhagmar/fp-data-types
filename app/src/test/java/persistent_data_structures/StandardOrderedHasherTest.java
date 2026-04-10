@@ -1,6 +1,8 @@
 package persistent_data_structures;
 
 import org.junit.jupiter.api.Test;
+import type_support.Hasher;
+import type_support.StandardOrderedHasher;
 
 import java.util.List;
 

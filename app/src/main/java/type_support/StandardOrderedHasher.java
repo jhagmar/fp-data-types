@@ -1,4 +1,4 @@
-package persistent_data_structures;
+package type_support;
 
 import java.util.Objects;
 

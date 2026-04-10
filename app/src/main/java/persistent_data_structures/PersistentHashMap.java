@@ -94,7 +94,7 @@ public final class PersistentHashMap<K, V> implements Iterable<Map.Entry<K, V>>,
         int h2 = getHash(n2);
 
         if (h1 == h2) {
-            return new CollisionNode<K, V>(h1, new LeafNode[]{(LeafNode<K, V>) n1, (LeafNode<K, V>) n2});
+            return new CollisionNode<>(h1, new LeafNode[]{(LeafNode<K, V>) n1, (LeafNode<K, V>) n2});
         }
 
         int bit1 = bitpos(h1, shift);
@@ -102,10 +102,10 @@ public final class PersistentHashMap<K, V> implements Iterable<Map.Entry<K, V>>,
 
         if (bit1 == bit2) {
             Node<K, V> child = mergeLeaves(shift + BITS_PER_LEVEL, n1, n2);
-            return new BitmapIndexedNode<K, V>(bit1, new Node[]{child});
+            return new BitmapIndexedNode<>(bit1, new Node[]{child});
         } else {
             // Use unsigned comparison so the 31st bit (0x80000000) is treated as the maximum value
-            return new BitmapIndexedNode<K, V>(bit1 | bit2,
+            return new BitmapIndexedNode<>(bit1 | bit2,
                     Integer.compareUnsigned(bit1, bit2) < 0 ? new Node[]{n1, n2} : new Node[]{n2, n1});
         }
     }

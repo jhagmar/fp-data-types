@@ -96,7 +96,7 @@ public final class PersistentHashSet<E> implements Iterable<E>, Serializable {
         int h2 = getHash(n2);
 
         if (h1 == h2) {
-            return new CollisionNode<E>(h1, new LeafNode[]{(LeafNode<E>) n1, (LeafNode<E>) n2});
+            return new CollisionNode<>(h1, new LeafNode[]{(LeafNode<E>) n1, (LeafNode<E>) n2});
         }
 
         int bit1 = bitpos(h1, shift);
@@ -104,10 +104,10 @@ public final class PersistentHashSet<E> implements Iterable<E>, Serializable {
 
         if (bit1 == bit2) {
             Node<E> child = mergeLeaves(shift + BITS_PER_LEVEL, n1, n2);
-            return new BitmapIndexedNode<E>(bit1, new Node[]{child});
+            return new BitmapIndexedNode<>(bit1, new Node[]{child});
         } else {
             // Use unsigned comparison so the 31st bit (0x80000000) is treated as the maximum value
-            return new BitmapIndexedNode<E>(bit1 | bit2,
+            return new BitmapIndexedNode<>(bit1 | bit2,
                     Integer.compareUnsigned(bit1, bit2) < 0 ? new Node[]{n1, n2} : new Node[]{n2, n1});
         }
     }

@@ -1,5 +1,9 @@
 package persistent_data_structures;
 
+import annotations.ExcludeFromCoverageGeneratedReport;
+import type_support.Hasher;
+import type_support.StandardOrderedHasher;
+
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.*;
@@ -23,7 +27,7 @@ public final class PersistentVector<T> implements Iterable<T>, Serializable {
     private static final Object[] EMPTY_ARRAY = new Object[0];
     @SuppressWarnings("rawtypes")
     private static final PersistentVector EMPTY = new PersistentVector<>(0, BIT_WIDTH, EMPTY_NODE, EMPTY_ARRAY);
-
+    
     private final int size;
     private final int shift; // Defines the current depth of the tree. E.g., shift=5 means depth 1.
     private final Node root;
