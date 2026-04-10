@@ -1,21 +1,13 @@
 package persistent_data_structures;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import org.junit.jupiter.api.Test;
+
+import java.io.*;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 class PersistentVectorTest {
 
@@ -99,7 +91,7 @@ class PersistentVectorTest {
     void testSetWithinTail() {
         PersistentVector<String> vector = PersistentVector.of("a", "b", "c");
         PersistentVector<String> modified = vector.set(1, "z");
-        
+
         assertEquals("b", vector.get(1), "Original vector should remain unmodified");
         assertEquals("z", modified.get(1), "New vector should contain updated element");
         assertEquals(3, modified.size());
@@ -111,9 +103,9 @@ class PersistentVectorTest {
         for (int i = 0; i < 40; i++) {
             vector = vector.append(i);
         }
-        
+
         PersistentVector<Integer> modified = vector.set(5, 999).set(35, 888);
-        
+
         assertEquals(5, vector.get(5)); // original intact
         assertEquals(35, vector.get(35)); // original intact
         assertEquals(999, modified.get(5)); // tree node update successful
@@ -124,7 +116,7 @@ class PersistentVectorTest {
     void testPopWithinTail() {
         PersistentVector<Integer> vector = PersistentVector.of(1, 2, 3);
         PersistentVector<Integer> popped = vector.pop();
-        
+
         assertEquals(2, popped.size());
         assertEquals(1, popped.get(0));
         assertEquals(2, popped.get(1));
@@ -146,7 +138,7 @@ class PersistentVectorTest {
         for (int i = 0; i < 33; i++) {
             vector = vector.append(i);
         }
-        
+
         // Pop the tail (now 32 elements, tail becomes empty or fetching from tree)
         PersistentVector<Integer> popped1 = vector.pop();
         assertEquals(32, popped1.size());
@@ -157,7 +149,7 @@ class PersistentVectorTest {
         assertEquals(31, popped2.size());
         assertEquals(30, popped2.get(30));
     }
-    
+
     @Test
     void testPopDeepTree() {
         // Test popping from a deep tree to hit recursive popTail logic
@@ -166,7 +158,7 @@ class PersistentVectorTest {
         for (int i = 0; i < targetSize; i++) {
             vector = vector.append(i);
         }
-        
+
         for (int i = targetSize - 1; i >= 0; i--) {
             assertEquals(i + 1, vector.size());
             assertEquals(i, vector.get(i));
@@ -178,12 +170,12 @@ class PersistentVectorTest {
     @Test
     void testBoundsChecking() {
         PersistentVector<String> vector = PersistentVector.of("a", "b");
-        
+
         IndexOutOfBoundsException ioobe1 = assertThrows(IndexOutOfBoundsException.class, () -> vector.get(-1));
         IndexOutOfBoundsException ioobe2 = assertThrows(IndexOutOfBoundsException.class, () -> vector.get(2));
         assertEquals("Index: -1, Size: 2", ioobe1.getMessage());
         assertEquals("Index: 2, Size: 2", ioobe2.getMessage());
-        
+
         IndexOutOfBoundsException ioobe3 = assertThrows(IndexOutOfBoundsException.class, () -> vector.set(-1, "x"));
         IndexOutOfBoundsException ioobe4 = assertThrows(IndexOutOfBoundsException.class, () -> vector.set(2, "x"));
         assertEquals("Index: -1, Size: 2", ioobe3.getMessage());
@@ -193,7 +185,7 @@ class PersistentVectorTest {
     @Test
     void testNullChecks() {
         PersistentVector<String> vector = PersistentVector.of("a");
-        
+
         NullPointerException npe1 = assertThrows(NullPointerException.class, () -> vector.append(null));
         NullPointerException npe2 = assertThrows(NullPointerException.class, () -> vector.set(0, null));
         assertEquals("PersistentVector does not permit null elements", npe1.getMessage());
@@ -222,7 +214,7 @@ class PersistentVectorTest {
     void testToList() {
         PersistentVector<Integer> vector = PersistentVector.of(1, 2, 3);
         List<Integer> list = vector.toList();
-        
+
         assertEquals(3, list.size());
         assertEquals(1, list.get(0));
         assertEquals(2, list.get(1));
@@ -270,7 +262,7 @@ class PersistentVectorTest {
         // Deserialize
         ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
         @SuppressWarnings("unchecked")
-                PersistentVector<Integer> deserialized;
+        PersistentVector<Integer> deserialized;
         try (ObjectInputStream ois = new ObjectInputStream(bais)) {
             deserialized = (PersistentVector<Integer>) ois.readObject();
         }

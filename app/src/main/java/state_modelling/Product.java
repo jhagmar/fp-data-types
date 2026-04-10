@@ -1,3 +1,4 @@
 package state_modelling;
 
-public record Product(Price price) {}
+public record Product(Price price) {
+}

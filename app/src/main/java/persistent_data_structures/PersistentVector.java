@@ -1,12 +1,8 @@
 package persistent_data_structures;
 
+import java.io.Serial;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * An immutable, persistent vector based on a 32-way bit-partitioned radix tree.
@@ -25,7 +21,6 @@ public final class PersistentVector<T> implements Iterable<T>, Serializable {
 
     private static final Node EMPTY_NODE = new Node(new Object[NODE_SIZE]);
     private static final Object[] EMPTY_ARRAY = new Object[0];
-
     @SuppressWarnings("rawtypes")
     private static final PersistentVector EMPTY = new PersistentVector<>(0, BIT_WIDTH, EMPTY_NODE, EMPTY_ARRAY);
 
@@ -33,21 +28,6 @@ public final class PersistentVector<T> implements Iterable<T>, Serializable {
     private final int shift; // Defines the current depth of the tree. E.g., shift=5 means depth 1.
     private final Node root;
     private final Object[] tail; // Holds up to the last 32 elements for fast O(1) appends.
-
-    /**
-     * Internal node structure for the radix tree. In a leaf node (level 0), the
-     * array holds the actual elements (T). In an internal node (level > 0), the
-     * array holds references to child Nodes.
-     */
-    private static final class Node implements Serializable {
-
-        private static final long serialVersionUID = 1L;
-        final Object[] array;
-
-        Node(Object[] array) {
-            this.array = array;
-        }
-    }
 
     private PersistentVector(int size, int shift, Node root, Object[] tail) {
         this.size = size;
@@ -68,7 +48,7 @@ public final class PersistentVector<T> implements Iterable<T>, Serializable {
 
     /**
      * Creates a PersistentVector containing the given elements.
-     * 
+     *
      * @param elements the elements to include in the vector
      * @return a PersistentVector containing the provided elements
      */
@@ -83,6 +63,7 @@ public final class PersistentVector<T> implements Iterable<T>, Serializable {
 
     /**
      * Checks if the vector is empty.
+     *
      * @return true if the vector contains no elements, false otherwise
      */
     public boolean isEmpty() {
@@ -91,6 +72,7 @@ public final class PersistentVector<T> implements Iterable<T>, Serializable {
 
     /**
      * Returns the number of elements in the vector.
+     *
      * @return the size of the vector
      */
     public int size() {
@@ -111,7 +93,7 @@ public final class PersistentVector<T> implements Iterable<T>, Serializable {
 
     /**
      * Retrieves the element at the specified index. O(log32 N) due to tree traversal.
-     * 
+     *
      * @param index the index of the element to retrieve
      * @return the element at the specified index
      * @throws IndexOutOfBoundsException if the index is out of range (index < 0 || index >= size)
@@ -129,8 +111,8 @@ public final class PersistentVector<T> implements Iterable<T>, Serializable {
     /**
      * Returns a new PersistentVector with the element at the specified index replaced
      * by the given element. O(log32 N) due to tree traversal and path copying.
-     * 
-     * @param index the index of the element to replace
+     *
+     * @param index   the index of the element to replace
      * @param element the new element to set at the specified index
      * @return a new PersistentVector with the updated element
      * @throws IndexOutOfBoundsException if the index is out of range (index < 0 || index >= size)
@@ -163,7 +145,7 @@ public final class PersistentVector<T> implements Iterable<T>, Serializable {
             // We've reached the leaf. Put the element in.
             ret.array[index & BIT_MASK] = element;
         } else {
-            // We are at an internal node. 
+            // We are at an internal node.
             // 'index >>> level' shifts out the lower bits to figure out which child branch to take.
             int subIndex = (index >>> level) & BIT_MASK;
             ret.array[subIndex] = setNode(level - BIT_WIDTH, (Node) node.array[subIndex], index, element);
@@ -173,7 +155,7 @@ public final class PersistentVector<T> implements Iterable<T>, Serializable {
 
     /**
      * Returns a new PersistentVector with the given element appended to the end. O(1) amortized.
-     * 
+     *
      * @param element the element to append
      * @return a new PersistentVector with the element appended
      * @throws NullPointerException if the element is null, as PersistentVector does not permit null elements
@@ -193,7 +175,7 @@ public final class PersistentVector<T> implements Iterable<T>, Serializable {
         int newShift = shift;
         Node newRoot;
 
-        // Check if the current tree is completely full. 
+        // Check if the current tree is completely full.
         // If the number of full nodes exceeds what the current depth (shift) can hold, we overflow.
         if ((size >>> BIT_WIDTH) > (1 << shift)) {
             // Overflow - We must grow the tree upwards. Create a new root.
@@ -251,7 +233,7 @@ public final class PersistentVector<T> implements Iterable<T>, Serializable {
 
     /**
      * Returns a new PersistentVector with the last element removed. O(1) amortized.
-     * 
+     *
      * @return a new PersistentVector with the last element removed
      * @throws IllegalStateException if the vector is empty, as you cannot pop from an empty vector
      */
@@ -275,7 +257,7 @@ public final class PersistentVector<T> implements Iterable<T>, Serializable {
         Node newRoot = popTail(shift, root);
         int newShift = shift;
 
-        // Contract the tree: if popping emptied out the entire right side of the root, 
+        // Contract the tree: if popping emptied out the entire right side of the root,
         // the root is redundant. We can drop it and make its only child the new root.
         if (shift > BIT_WIDTH && newRoot.array[1] == null) {
             newRoot = (Node) newRoot.array[0];
@@ -329,7 +311,7 @@ public final class PersistentVector<T> implements Iterable<T>, Serializable {
     /**
      * Converts this PersistentVector to a standard Java List. The returned list is
      * unmodifiable and reflects the state of the vector at the time of conversion. O(N) time.
-     * 
+     *
      * @return an unmodifiable List containing the elements of this PersistentVector
      */
     public List<T> toList() {
@@ -340,32 +322,15 @@ public final class PersistentVector<T> implements Iterable<T>, Serializable {
         return java.util.Collections.unmodifiableList(result);
     }
 
+    @Serial
     private Object writeReplace() {
         return new SerializationProxy<>(this);
     }
 
+    @Serial
     @ExcludeFromCoverageGeneratedReport
     private void readObject(@SuppressWarnings("unused") java.io.ObjectInputStream stream) throws java.io.InvalidObjectException {
         throw new java.io.InvalidObjectException("Serialization proxy required");
-    }
-
-    private static class SerializationProxy<T> implements Serializable {
-
-        private static final long serialVersionUID = 1L;
-        private final Object[] elements;
-
-        SerializationProxy(PersistentVector<T> vector) {
-            this.elements = new Object[vector.size()];
-            int i = 0;
-            for (T element : vector) {
-                this.elements[i++] = element;
-            }
-        }
-
-        @SuppressWarnings("unchecked")
-        private Object readResolve() {
-            return PersistentVector.of((T[]) elements);
-        }
     }
 
     @Override
@@ -402,11 +367,10 @@ public final class PersistentVector<T> implements Iterable<T>, Serializable {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof PersistentVector)) {
+        if (!(o instanceof PersistentVector<?> that)) {
             return false;
         }
 
-        PersistentVector<?> that = (PersistentVector<?>) o;
         if (this.size != that.size) {
             return false;
         }
@@ -447,5 +411,42 @@ public final class PersistentVector<T> implements Iterable<T>, Serializable {
         }
         sb.append("]");
         return sb.toString();
+    }
+
+    /**
+     * Internal node structure for the radix tree. In a leaf node (level 0), the
+     * array holds the actual elements (T). In an internal node (level > 0), the
+     * array holds references to child Nodes.
+     */
+    private static final class Node implements Serializable {
+
+        @Serial
+        private static final long serialVersionUID = 1L;
+        final Object[] array;
+
+        Node(Object[] array) {
+            this.array = array;
+        }
+    }
+
+    private static class SerializationProxy<T> implements Serializable {
+
+        @Serial
+        private static final long serialVersionUID = 1L;
+        private final Object[] elements;
+
+        SerializationProxy(PersistentVector<T> vector) {
+            this.elements = new Object[vector.size()];
+            int i = 0;
+            for (T element : vector) {
+                this.elements[i++] = element;
+            }
+        }
+
+        @Serial
+        @SuppressWarnings("unchecked")
+        private Object readResolve() {
+            return PersistentVector.of((T[]) elements);
+        }
     }
 }

@@ -1,19 +1,19 @@
 package persistent_data_structures;
 
+import org.junit.jupiter.api.Test;
+
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Full-coverage test suite for the {@link Result} discriminated union type.
  */
 class ResultTest {
+
+    private final Result<String, Integer> okResult = Result.ok("Success");
+    private final Result<String, Integer> errResult = Result.err(404);
 
     @Test
     void ok_WithNonNullValue_CreatesOkInstance() {
@@ -50,8 +50,6 @@ class ResultTest {
         NullPointerException exception = assertThrows(NullPointerException.class, () -> Result.err(null));
         assertEquals("Error value cannot be null", exception.getMessage());
     }
-
-    private final Result<String, Integer> okResult = Result.ok("Success");
 
     @Test
     void isOk_ReturnsTrue() {
@@ -176,8 +174,6 @@ class ResultTest {
         assertTrue(optional.isPresent());
         assertEquals("Success", optional.get());
     }
-
-    private final Result<String, Integer> errResult = Result.err(404);
 
     @Test
     void isOk_ReturnsFalse() {

@@ -1,3 +1,4 @@
 package state_modelling;
 
-public record User(Address address) {}
+public record User(Address address) {
+}

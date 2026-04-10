@@ -1,5 +1,7 @@
 package persistent_data_structures;
 
+import org.junit.jupiter.api.Test;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
@@ -11,15 +13,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 class PersistentTreeMapTest {
 
@@ -45,7 +39,7 @@ class PersistentTreeMapTest {
         assertEquals(Optional.of("Two"), map.get(2));
         assertEquals(Optional.of("Three"), map.get(3));
         assertEquals(Optional.empty(), map.get(4));
-        
+
         assertTrue(map.containsKey(2));
         assertFalse(map.containsKey(4));
     }
@@ -88,16 +82,16 @@ class PersistentTreeMapTest {
     void testNullKeysRejected() {
         PersistentTreeMap<Integer, String> map = PersistentTreeMap.empty();
         NullPointerException exception1 = assertThrows(NullPointerException.class, () -> map.put(null, "A"));
-        assertEquals("PersistentTreeMap does not permit null keys", exception1.getMessage(), 
+        assertEquals("PersistentTreeMap does not permit null keys", exception1.getMessage(),
                 "Exception message must exactly match the defined contract for null key rejection");
         NullPointerException exception2 = assertThrows(NullPointerException.class, () -> map.get(null));
-        assertEquals("PersistentTreeMap does not permit null keys", exception2.getMessage(), 
+        assertEquals("PersistentTreeMap does not permit null keys", exception2.getMessage(),
                 "Exception message must exactly match the defined contract for null key rejection");
         NullPointerException exception3 = assertThrows(NullPointerException.class, () -> map.containsKey(null));
-        assertEquals("PersistentTreeMap does not permit null keys", exception3.getMessage(), 
+        assertEquals("PersistentTreeMap does not permit null keys", exception3.getMessage(),
                 "Exception message must exactly match the defined contract for null key rejection");
         NullPointerException exception4 = assertThrows(NullPointerException.class, () -> map.remove(null));
-        assertEquals("PersistentTreeMap does not permit null keys", exception4.getMessage(), 
+        assertEquals("PersistentTreeMap does not permit null keys", exception4.getMessage(),
                 "Exception message must exactly match the defined contract for null key rejection");
     }
 
@@ -151,7 +145,7 @@ class PersistentTreeMapTest {
         PersistentTreeMap<Integer, String> map = PersistentTreeMap.<Integer, String>empty()
                 .put(2, "B").put(1, "A").put(3, "C");
         PersistentTreeMap<Integer, String> result = map.put(1, "A");
-        
+
         assertSame(map, result, "Putting the same key-value pair should yield an equal map");
     }
 
@@ -161,7 +155,7 @@ class PersistentTreeMapTest {
         PersistentTreeMap<Integer, String> map = PersistentTreeMap.<Integer, String>empty()
                 .put(2, "B").put(1, "A").put(3, "C");
         PersistentTreeMap<Integer, String> result = map.put(3, "C");
-        
+
         assertSame(map, result, "Putting the same key-value pair should yield an equal map");
     }
 
@@ -188,7 +182,7 @@ class PersistentTreeMapTest {
         PersistentTreeMap<Integer, String> map = PersistentTreeMap.<Integer, String>empty()
                 .put(2, "B").put(1, "A").put(3, "C");
         PersistentTreeMap<Integer, String> result = map.remove(1);
-        
+
         assertEquals(2, result.size());
         assertFalse(result.containsKey(1));
         assertTrue(result.containsKey(2));
@@ -210,9 +204,9 @@ class PersistentTreeMapTest {
     void testRemoveNodeWithTwoChildren() {
         PersistentTreeMap<Integer, String> map = PersistentTreeMap.<Integer, String>empty()
                 .put(5, "E").put(3, "C").put(8, "H").put(7, "G").put(9, "I"); // 8 has children 7 and 9
-        
+
         PersistentTreeMap<Integer, String> result = map.remove(8); // Replaced by successor 9
-        
+
         assertEquals(4, result.size());
         assertFalse(result.containsKey(8));
         assertTrue(result.containsKey(5) && result.containsKey(3) && result.containsKey(7) && result.containsKey(9));
@@ -222,7 +216,7 @@ class PersistentTreeMapTest {
     void testRemoveRootCausesRebalance() {
         PersistentTreeMap<Integer, String> map = PersistentTreeMap.<Integer, String>empty()
                 .put(4, "D").put(2, "B").put(6, "F").put(1, "A").put(3, "C").put(5, "E").put(7, "G");
-        
+
         PersistentTreeMap<Integer, String> result = map.remove(4);
         assertEquals(6, result.size());
         assertFalse(result.containsKey(4));
@@ -234,14 +228,14 @@ class PersistentTreeMapTest {
                 .put(3, "C").put(1, "A").put(4, "D").put(2, "B");
 
         Iterator<Map.Entry<Integer, String>> it = map.iterator();
-        
+
         assertTrue(it.hasNext());
         assertEquals(1, it.next().getKey());
         assertEquals(2, it.next().getKey());
         assertEquals(3, it.next().getKey());
         assertEquals(4, it.next().getKey());
         assertFalse(it.hasNext());
-        
+
         NoSuchElementException exception = assertThrows(NoSuchElementException.class, it::next);
         assertNotNull(exception, "Calling next() on an exhausted iterator should throw NoSuchElementException");
     }
@@ -272,7 +266,7 @@ class PersistentTreeMapTest {
 
         PersistentTreeMap<Integer, String> map = PersistentTreeMap.<Integer, String>empty()
                 .put(2, "B").put(1, "A");
-        
+
         // Iteration order is guaranteed sorted by key
         assertEquals("{1=A, 2=B}", map.toString());
     }
@@ -305,16 +299,16 @@ class PersistentTreeMapTest {
     @Test
     void testDirectReadObjectThrowsException() throws Exception {
         PersistentTreeMap<Integer, String> map = PersistentTreeMap.empty();
-        
+
         // Use reflection to bypass visibility and invoke readObject directly to guarantee 100% line coverage
         Method readObjectMethod = PersistentTreeMap.class.getDeclaredMethod("readObject", ObjectInputStream.class);
         readObjectMethod.setAccessible(true);
-        
+
         InvocationTargetException exception = assertThrows(
-                InvocationTargetException.class, 
+                InvocationTargetException.class,
                 () -> readObjectMethod.invoke(map, (ObjectInputStream) null)
         );
-        
+
         assertTrue(exception.getCause() instanceof java.io.InvalidObjectException);
         assertEquals("Serialization proxy required", exception.getCause().getMessage());
     }

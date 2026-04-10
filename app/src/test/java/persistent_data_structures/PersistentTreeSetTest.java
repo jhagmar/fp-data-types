@@ -1,5 +1,7 @@
 package persistent_data_structures;
 
+import org.junit.jupiter.api.Test;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
@@ -9,15 +11,7 @@ import java.lang.reflect.Method;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 class PersistentTreeSetTest {
 
@@ -72,17 +66,17 @@ class PersistentTreeSetTest {
     @Test
     void testNullElementsRejected() {
         PersistentTreeSet<Integer> set = PersistentTreeSet.empty();
-        
+
         NullPointerException exception1 = assertThrows(NullPointerException.class, () -> set.add(null));
-        assertEquals("PersistentTreeSet does not permit null elements", exception1.getMessage(), 
+        assertEquals("PersistentTreeSet does not permit null elements", exception1.getMessage(),
                 "Exception message must exactly match the defined contract for null rejection");
-                
+
         NullPointerException exception2 = assertThrows(NullPointerException.class, () -> set.contains(null));
-        assertEquals("PersistentTreeSet does not permit null elements", exception2.getMessage(), 
+        assertEquals("PersistentTreeSet does not permit null elements", exception2.getMessage(),
                 "Exception message must exactly match the defined contract for null rejection");
-                
+
         NullPointerException exception3 = assertThrows(NullPointerException.class, () -> set.remove(null));
-        assertEquals("PersistentTreeSet does not permit null elements", exception3.getMessage(), 
+        assertEquals("PersistentTreeSet does not permit null elements", exception3.getMessage(),
                 "Exception message must exactly match the defined contract for null rejection");
     }
 
@@ -128,7 +122,7 @@ class PersistentTreeSetTest {
         PersistentTreeSet<Integer> set = PersistentTreeSet.<Integer>empty()
                 .add(2).add(1).add(3);
         PersistentTreeSet<Integer> result = set.add(1);
-        
+
         assertSame(set, result, "Adding the same element should yield an equal set");
     }
 
@@ -138,7 +132,7 @@ class PersistentTreeSetTest {
         PersistentTreeSet<Integer> set = PersistentTreeSet.<Integer>empty()
                 .add(2).add(1).add(3);
         PersistentTreeSet<Integer> result = set.add(3);
-        
+
         assertSame(set, result, "Adding the same element should yield an equal set");
     }
 
@@ -158,7 +152,7 @@ class PersistentTreeSetTest {
         PersistentTreeSet<Integer> set = PersistentTreeSet.<Integer>empty()
                 .add(2).add(1).add(3);
         PersistentTreeSet<Integer> result = set.remove(1);
-        
+
         assertEquals(2, result.size());
         assertFalse(result.contains(1));
         assertTrue(result.contains(2));
@@ -180,9 +174,9 @@ class PersistentTreeSetTest {
     void testRemoveNodeWithTwoChildren() {
         PersistentTreeSet<Integer> set = PersistentTreeSet.<Integer>empty()
                 .add(5).add(3).add(8).add(7).add(9); // 8 has children 7 and 9
-        
+
         PersistentTreeSet<Integer> result = set.remove(8); // Replaced by successor 9
-        
+
         assertEquals(4, result.size());
         assertFalse(result.contains(8));
         assertTrue(result.contains(5) && result.contains(3) && result.contains(7) && result.contains(9));
@@ -192,7 +186,7 @@ class PersistentTreeSetTest {
     void testRemoveRootCausesRebalance() {
         PersistentTreeSet<Integer> set = PersistentTreeSet.<Integer>empty()
                 .add(4).add(2).add(6).add(1).add(3).add(5).add(7);
-        
+
         PersistentTreeSet<Integer> result = set.remove(4);
         assertEquals(6, result.size());
         assertFalse(result.contains(4));
@@ -204,14 +198,14 @@ class PersistentTreeSetTest {
                 .add(3).add(1).add(4).add(2);
 
         Iterator<Integer> it = set.iterator();
-        
+
         assertTrue(it.hasNext());
         assertEquals(1, it.next());
         assertEquals(2, it.next());
         assertEquals(3, it.next());
         assertEquals(4, it.next());
         assertFalse(it.hasNext());
-        
+
         NoSuchElementException exception = assertThrows(NoSuchElementException.class, it::next);
         assertNotNull(exception, "Calling next() on an exhausted iterator should throw NoSuchElementException");
     }
@@ -241,7 +235,7 @@ class PersistentTreeSetTest {
 
         PersistentTreeSet<Integer> set = PersistentTreeSet.<Integer>empty()
                 .add(2).add(1);
-        
+
         // Iteration order is guaranteed sorted
         assertEquals("[1, 2]", set.toString());
     }
@@ -274,16 +268,16 @@ class PersistentTreeSetTest {
     @Test
     void testDirectReadObjectThrowsException() throws Exception {
         PersistentTreeSet<Integer> set = PersistentTreeSet.empty();
-        
+
         // Use reflection to bypass visibility and invoke readObject directly to guarantee 100% line coverage
         Method readObjectMethod = PersistentTreeSet.class.getDeclaredMethod("readObject", ObjectInputStream.class);
         readObjectMethod.setAccessible(true);
-        
+
         InvocationTargetException exception = assertThrows(
-                InvocationTargetException.class, 
+                InvocationTargetException.class,
                 () -> readObjectMethod.invoke(set, (ObjectInputStream) null)
         );
-        
+
         assertTrue(exception.getCause() instanceof java.io.InvalidObjectException);
         assertEquals("Serialization proxy required", exception.getCause().getMessage());
     }

@@ -21,7 +21,7 @@ import java.util.function.UnaryOperator;
  * </ul>
  *
  * @param <Whole> The type of the complex, larger immutable object.
- * @param <Part> The type of the focused sub-property.
+ * @param <Part>  The type of the focused sub-property.
  */
 public final class Lens<Whole, Part> {
 
@@ -33,9 +33,9 @@ public final class Lens<Whole, Part> {
      * method for a fluent API.
      *
      * @param getter A function that extracts the Part from the Whole. Must not
-     * be null.
+     *               be null.
      * @param setter A function that takes the Whole and a new Part, returning a
-     * new Whole. Must not be null.
+     *               new Whole. Must not be null.
      */
     private Lens(Function<Whole, Part> getter, BiFunction<Whole, Part, Whole> setter) {
         this.getter = Objects.requireNonNull(getter, "Getter function must not be null");
@@ -47,9 +47,9 @@ public final class Lens<Whole, Part> {
      *
      * @param getter A function that extracts the Part from the Whole.
      * @param setter A function that takes the Whole and a new Part, returning a
-     * new Whole.
-     * @param <W> The type of the Whole.
-     * @param <P> The type of the Part.
+     *               new Whole.
+     * @param <W>    The type of the Whole.
+     * @param <P>    The type of the Part.
      * @return A new Lens instance.
      */
     public static <W, P> Lens<W, P> of(Function<W, P> getter, BiFunction<W, P, W> setter) {
@@ -70,7 +70,7 @@ public final class Lens<Whole, Part> {
      * Creates a new copy of the whole structure with the focused part replaced
      * by the new value.
      *
-     * @param whole The original parent structure.
+     * @param whole   The original parent structure.
      * @param newPart The new value to set at the focused location.
      * @return A new immutable instance of the Whole with the updated Part.
      */
@@ -82,9 +82,9 @@ public final class Lens<Whole, Part> {
      * Modifies the focused part by applying a function to its current value,
      * returning a new copy of the whole structure.
      *
-     * @param whole The original parent structure.
+     * @param whole    The original parent structure.
      * @param modifier A function to apply to the current Part. Must not be
-     * null.
+     *                 null.
      * @return A new immutable instance of the Whole with the modified Part.
      */
     public Whole modify(Whole whole, UnaryOperator<Part> modifier) {
@@ -98,7 +98,7 @@ public final class Lens<Whole, Part> {
      * Composes this Lens with another Lens, creating a new Lens that focuses on
      * a deeper nested sub-property.
      *
-     * @param other The Lens to append to this path. Must not be null.
+     * @param other     The Lens to append to this path. Must not be null.
      * @param <SubPart> The type of the deeper nested property.
      * @return A new composed Lens targeting the SubPart.
      */

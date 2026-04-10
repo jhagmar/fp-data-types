@@ -1,24 +1,14 @@
 package persistent_data_structures;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import org.junit.jupiter.api.Test;
+
+import java.io.*;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 class PersistentListTest {
 
@@ -46,8 +36,8 @@ class PersistentListTest {
         assertEquals(4, list3.size(), "Varargs size should be 4");
         assertEquals(1, list3.head().get(), "Varargs head should be 1");
 
-        NullPointerException npe = assertThrows(NullPointerException.class, 
-                () -> PersistentList.of(1, null, 3), 
+        NullPointerException npe = assertThrows(NullPointerException.class,
+                () -> PersistentList.of(1, null, 3),
                 "Varargs should reject nulls");
         assertNotNull(npe, "assertThrows should return the caught exception");
     }
@@ -59,12 +49,12 @@ class PersistentListTest {
 
         assertEquals(3, prepended.size(), "Prepended list should grow by 1");
         assertEquals(1, prepended.head().get(), "New head should be 1");
-        
+
         // Test Structural Sharing: The tail of the new list MUST be the exact instance of the original list
         assertSame(original, prepended.tail(), "Prepending must structurally share the existing tail");
 
-        NullPointerException npe = assertThrows(NullPointerException.class, 
-                () -> original.prepend(null), 
+        NullPointerException npe = assertThrows(NullPointerException.class,
+                () -> original.prepend(null),
                 "Prepend should reject null");
         assertNotNull(npe, "assertThrows should return the caught exception");
     }
@@ -73,7 +63,7 @@ class PersistentListTest {
     void testHeadAndTail() {
         PersistentList<Integer> list = PersistentList.of(10, 20);
         assertEquals(Optional.of(10), list.head(), "Head should return Optional[10]");
-        
+
         PersistentList<Integer> tail = list.tail();
         assertEquals(1, tail.size(), "Tail should have size 1");
         assertEquals(Optional.of(20), tail.head(), "Tail's head should be 20");
@@ -111,7 +101,7 @@ class PersistentListTest {
     @Test
     void testTake() {
         PersistentList<Integer> list = PersistentList.of(1, 2, 3, 4, 5);
-        
+
         assertEquals(PersistentList.of(1, 2), list.take(2), "Take(2) failed");
         assertEquals(PersistentList.empty(), list.take(0), "Take(0) should be empty");
         assertEquals(PersistentList.empty(), list.take(-5), "Take(negative) should be empty");
@@ -159,7 +149,7 @@ class PersistentListTest {
     void testConcat() {
         PersistentList<Integer> l1 = PersistentList.of(1, 2);
         PersistentList<Integer> l2 = PersistentList.of(3, 4);
-        
+
         assertEquals(PersistentList.of(1, 2, 3, 4), l1.concat(l2), "Concat failed");
         assertSame(l2, PersistentList.<Integer>empty().concat(l2), "Concat to empty should return other");
         assertSame(l1, l1.concat(PersistentList.empty()), "Concat empty should return this");
@@ -169,12 +159,12 @@ class PersistentListTest {
     void testToListImmutability() {
         PersistentList<Integer> list = PersistentList.of(1, 2, 3);
         List<Integer> javaList = list.toList();
-        
+
         assertEquals(3, javaList.size(), "toList size mismatch");
         assertEquals(1, javaList.get(0), "toList first element mismatch");
-        
-        UnsupportedOperationException uoe = assertThrows(UnsupportedOperationException.class, 
-                () -> javaList.add(4), 
+
+        UnsupportedOperationException uoe = assertThrows(UnsupportedOperationException.class,
+                () -> javaList.add(4),
                 "toList should be unmodifiable");
         assertNotNull(uoe, "assertThrows should return the caught exception");
     }
@@ -183,15 +173,15 @@ class PersistentListTest {
     void testIterator() {
         PersistentList<Integer> list = PersistentList.of(10, 20);
         Iterator<Integer> it = list.iterator();
-        
+
         assertTrue(it.hasNext(), "Iterator should have next");
         assertEquals(10, it.next(), "First element should be 10");
         assertTrue(it.hasNext(), "Iterator should have next");
         assertEquals(20, it.next(), "Second element should be 20");
         assertFalse(it.hasNext(), "Iterator should be empty");
-        
-        NoSuchElementException nsee = assertThrows(NoSuchElementException.class, 
-                it::next, 
+
+        NoSuchElementException nsee = assertThrows(NoSuchElementException.class,
+                it::next,
                 "Iterator should throw on exhaust");
         assertNotNull(nsee, "assertThrows should return the caught exception");
     }
@@ -201,7 +191,7 @@ class PersistentListTest {
         PersistentList<Integer> l1 = PersistentList.of(1, 2, 3);
         PersistentList<Integer> l2 = PersistentList.of(1).concat(PersistentList.of(2, 3));
         PersistentList<Integer> l3 = PersistentList.of(1, 2, 4);
-        
+
         assertEquals(l2, l1, "Identical lists should be equal");
         assertEquals(l2.hashCode(), l1.hashCode(), "Identical lists should have same hashCode");
         assertNotEquals(l3, l1, "Different lists should not be equal");
@@ -232,10 +222,10 @@ class PersistentListTest {
             ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
             try (ObjectInputStream ois = new ObjectInputStream(bais)) {
                 @SuppressWarnings("unchecked")
-                        PersistentList<String> read = (PersistentList<String>) ois.readObject();
+                PersistentList<String> read = (PersistentList<String>) ois.readObject();
                 deserialized = read;
             }
-            
+
         } catch (IOException | ClassNotFoundException e) {
             fail("Serialization threw an exception: " + e.getMessage());
         }
@@ -248,7 +238,7 @@ class PersistentListTest {
         PersistentList<Integer> list1 = PersistentList.of(1, 2, 3);
         PersistentList<Integer> list2 = PersistentList.of(1, 2, 3);
         PersistentList<Integer> list3 = PersistentList.of(1, 2);
-        
+
         assertEquals(list1, list2, "Lists with same elements should be equal");
         assertNotEquals(list1, list3, "Lists with different elements should not be equal");
         assertNotEquals(null, list1, "List should not equal null");

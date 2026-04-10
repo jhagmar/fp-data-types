@@ -27,8 +27,8 @@ public sealed interface Result<T, E> permits Result.Ok, Result.Err {
      * Creates a successful {@code Result} containing the provided value.
      *
      * @param value the success value; must not be null
-     * @param <T> the type of the success value
-     * @param <E> the type of the error
+     * @param <T>   the type of the success value
+     * @param <E>   the type of the error
      * @return an {@code Ok} variant of {@code Result}
      * @throws NullPointerException if the value is null
      */
@@ -40,8 +40,8 @@ public sealed interface Result<T, E> permits Result.Ok, Result.Err {
      * Creates a failed {@code Result} containing the provided error.
      *
      * @param error the error value; must not be null
-     * @param <T> the type of the success value
-     * @param <E> the type of the error
+     * @param <T>   the type of the success value
+     * @param <E>   the type of the error
      * @return an {@code Err} variant of {@code Result}
      * @throws NullPointerException if the error is null
      */
@@ -109,7 +109,7 @@ public sealed interface Result<T, E> permits Result.Ok, Result.Err {
      * by the provided supplier.
      *
      * @param exceptionMapper a function mapping the error to an exception
-     * @param <X> the type of the exception to be thrown
+     * @param <X>             the type of the exception to be thrown
      * @return the success value
      * @throws X if the result is an {@code Err}
      */
@@ -120,7 +120,7 @@ public sealed interface Result<T, E> permits Result.Ok, Result.Err {
      * {@code Err} untouched.
      *
      * @param mapper the function to apply to the success value
-     * @param <U> the type of the new success value
+     * @param <U>    the type of the new success value
      * @return a new {@code Result} containing the mapped value or the original
      * error
      */
@@ -131,7 +131,7 @@ public sealed interface Result<T, E> permits Result.Ok, Result.Err {
      * {@code Ok} untouched.
      *
      * @param mapper the function to apply to the error value
-     * @param <F> the type of the new error value
+     * @param <F>    the type of the new error value
      * @return a new {@code Result} containing the original value or the mapped
      * error
      */
@@ -143,7 +143,7 @@ public sealed interface Result<T, E> permits Result.Ok, Result.Err {
      * unmodified.
      *
      * @param mapper the function returning a new {@code Result}
-     * @param <U> the success type of the new {@code Result}
+     * @param <U>    the success type of the new {@code Result}
      * @return the result of applying the mapper, or the original error
      */
     <U> Result<U, E> flatMap(Function<? super T, ? extends Result<? extends U, ? extends E>> mapper);
@@ -154,7 +154,7 @@ public sealed interface Result<T, E> permits Result.Ok, Result.Err {
      * unmodified.
      *
      * @param mapper the function returning a new {@code Result}
-     * @param <F> the error type of the new {@code Result}
+     * @param <F>    the error type of the new {@code Result}
      * @return the result of applying the mapper, or the original success value
      */
     <F> Result<T, F> flatMapErr(Function<? super E, ? extends Result<? extends T, ? extends F>> mapper);
@@ -164,9 +164,9 @@ public sealed interface Result<T, E> permits Result.Ok, Result.Err {
      * of two functions based on whether the result is {@code Ok} or
      * {@code Err}.
      *
-     * @param onOk the function to apply if the result is {@code Ok}
+     * @param onOk  the function to apply if the result is {@code Ok}
      * @param onErr the function to apply if the result is {@code Err}
-     * @param <R> the return type of both functions
+     * @param <R>   the return type of both functions
      * @return the result of applying the corresponding function
      */
     <R> R match(Function<? super T, ? extends R> onOk, Function<? super E, ? extends R> onErr);

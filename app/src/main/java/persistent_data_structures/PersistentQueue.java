@@ -1,11 +1,8 @@
 package persistent_data_structures;
 
+import java.io.Serial;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * An immutable, persistent queue implemented using two singly-linked lists.
@@ -22,7 +19,8 @@ public final class PersistentQueue<T> implements Iterable<T>, Serializable {
 
     @SuppressWarnings("rawtypes")
     private static final PersistentQueue EMPTY = new PersistentQueue<>(PersistentList.empty(), PersistentList.empty(), 0);
-
+    @Serial
+    private static final long serialVersionUID = 1L;
     private final PersistentList<T> front;
     private final PersistentList<T> rear;
     private final int size;
@@ -31,9 +29,9 @@ public final class PersistentQueue<T> implements Iterable<T>, Serializable {
      * Private constructor to enforce invariants and rebalance the queue.
      *
      * @param front the list containing the front elements
-     * @param rear the list containing the newly enqueued elements in reverse
-     * order
-     * @param size the total pre-calculated size of the queue
+     * @param rear  the list containing the newly enqueued elements in reverse
+     *              order
+     * @param size  the total pre-calculated size of the queue
      */
     private PersistentQueue(PersistentList<T> front, PersistentList<T> rear, int size) {
         // Enforce the core invariant: front is empty ONLY if the entire queue is empty.
@@ -61,7 +59,7 @@ public final class PersistentQueue<T> implements Iterable<T>, Serializable {
     /**
      * Creates a new queue containing a single element. Time complexity: O(1)
      *
-     * @param e1 the element to include
+     * @param e1  the element to include
      * @param <T> the type of the element
      * @return a new PersistentQueue containing the provided element
      * @throws NullPointerException if the element is null
@@ -74,8 +72,8 @@ public final class PersistentQueue<T> implements Iterable<T>, Serializable {
      * Creates a new queue containing the provided elements. Time complexity:
      * O(1) for a fixed number of elements.
      *
-     * @param e1 the first element
-     * @param e2 the second element
+     * @param e1  the first element
+     * @param e2  the second element
      * @param <T> the type of the elements
      * @return a new PersistentQueue containing the elements in order
      */
@@ -88,7 +86,7 @@ public final class PersistentQueue<T> implements Iterable<T>, Serializable {
      * O(N) where N is the number of elements provided.
      *
      * @param elements the elements to include
-     * @param <T> the type of elements
+     * @param <T>      the type of elements
      * @return a new PersistentQueue containing the provided elements
      */
     @SafeVarargs
@@ -164,7 +162,7 @@ public final class PersistentQueue<T> implements Iterable<T>, Serializable {
      * rebuilding. Time complexity: O(N), Space complexity: O(N)
      *
      * @param mapper the function to apply to each element
-     * @param <U> the type of elements in the resulting queue
+     * @param <U>    the type of elements in the resulting queue
      * @return a new PersistentQueue containing the mapped elements
      */
     public <U> PersistentQueue<U> map(java.util.function.Function<? super T, ? extends U> mapper) {
@@ -194,9 +192,9 @@ public final class PersistentQueue<T> implements Iterable<T>, Serializable {
      * Reduces the elements of this queue into a single value. Time complexity:
      * O(N), Space complexity: O(1)
      *
-     * @param identity the initial value
+     * @param identity    the initial value
      * @param accumulator the function that combines the accumulated value
-     * @param <U> the type of the resulting value
+     * @param <U>         the type of the resulting value
      * @return the reduced result
      */
     public <U> U foldLeft(U identity, java.util.function.BiFunction<U, ? super T, U> accumulator) {
@@ -303,11 +301,10 @@ public final class PersistentQueue<T> implements Iterable<T>, Serializable {
         return sb.toString();
     }
 
-    private static final long serialVersionUID = 1L;
-
     /**
      * Intercepts the serialization process to use a flat proxy object.
      */
+    @Serial
     private Object writeReplace() {
         return new SerializationProxy<>(this);
     }
@@ -315,6 +312,7 @@ public final class PersistentQueue<T> implements Iterable<T>, Serializable {
     /**
      * Prevents default deserialization.
      */
+    @Serial
     @ExcludeFromCoverageGeneratedReport
     private void readObject(@SuppressWarnings("unused") java.io.ObjectInputStream stream) throws java.io.InvalidObjectException {
         throw new java.io.InvalidObjectException("Serialization proxy required");
@@ -325,6 +323,7 @@ public final class PersistentQueue<T> implements Iterable<T>, Serializable {
      */
     private static class SerializationProxy<T> implements java.io.Serializable {
 
+        @Serial
         private static final long serialVersionUID = 1L;
         private final Object[] elements;
 
@@ -336,6 +335,7 @@ public final class PersistentQueue<T> implements Iterable<T>, Serializable {
             }
         }
 
+        @Serial
         @SuppressWarnings("unchecked")
         private Object readResolve() {
             return PersistentQueue.of((T[]) elements);

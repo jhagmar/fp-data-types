@@ -1,12 +1,8 @@
 package persistent_data_structures;
 
+import java.io.Serial;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * An immutable, persistent singly-linked list (Cons list). This collection does
@@ -19,7 +15,8 @@ public final class PersistentList<T> implements Iterable<T>, Serializable {
     // A shared singleton to represent the empty list (Nil)
     @SuppressWarnings("rawtypes")
     private static final PersistentList EMPTY = new PersistentList<>(null, null, 0);
-
+    @Serial
+    private static final long serialVersionUID = 1L;
     private final T head;
     private final PersistentList<T> tail;
     private final int size;
@@ -51,7 +48,7 @@ public final class PersistentList<T> implements Iterable<T>, Serializable {
     /**
      * Creates a new list containing a single element. Time complexity: O(1)
      *
-     * @param e1 the element to include in the list
+     * @param e1  the element to include in the list
      * @param <T> the type of the element
      * @return a new PersistentList containing the provided element
      * @throws NullPointerException if the element is null
@@ -64,8 +61,8 @@ public final class PersistentList<T> implements Iterable<T>, Serializable {
      * Creates a new list containing the provided elements. Time complexity:
      * O(1) for a fixed number of elements.
      *
-     * @param e1 the first element to include in the list
-     * @param e2 the second element to include in the list
+     * @param e1  the first element to include in the list
+     * @param e2  the second element to include in the list
      * @param <T> the type of the elements
      * @return a new PersistentList containing the provided elements in the
      * order they were given
@@ -80,7 +77,7 @@ public final class PersistentList<T> implements Iterable<T>, Serializable {
      * O(N) where N is the number of elements provided.
      *
      * @param elements the elements to include in the list
-     * @param <T> the type of elements
+     * @param <T>      the type of elements
      * @return a new PersistentList containing the provided elements
      * @throws NullPointerException if any element is null
      */
@@ -204,8 +201,7 @@ public final class PersistentList<T> implements Iterable<T>, Serializable {
 
         // 4. Rebuild the list from the shared tail using the prefix buffer
         for (int i = index - 1; i >= 0; i--) {
-            @SuppressWarnings("unchecked")
-            final T val = (T) prefix[i];
+            @SuppressWarnings("unchecked") final T val = (T) prefix[i];
             result = new PersistentList<>(val, result, result.size + 1);
         }
 
@@ -289,11 +285,11 @@ public final class PersistentList<T> implements Iterable<T>, Serializable {
      * O(N) where N is the size of this list.
      *
      * @param mapper the function to apply to each element
-     * @param <U> the type of elements in the resulting list
+     * @param <U>    the type of elements in the resulting list
      * @return a new PersistentList containing the results of applying the
      * mapper function to each element of this list
      * @throws NullPointerException if the mapper function is null or if it
-     * produces a null result for any element
+     *                              produces a null result for any element
      */
     public <U> PersistentList<U> map(java.util.function.Function<? super T, ? extends U> mapper) {
         PersistentList<U> result = PersistentList.empty();
@@ -332,10 +328,10 @@ public final class PersistentList<T> implements Iterable<T>, Serializable {
      * Time complexity: O(N) where N is the size of this list. Space complexity
      * O(1).
      *
-     * @param identity the initial value for the reduction
+     * @param identity    the initial value for the reduction
      * @param accumulator the function that combines the accumulated value with
-     * each element of the list
-     * @param <U> the type of the resulting value
+     *                    each element of the list
+     * @param <U>         the type of the resulting value
      * @return the result of reducing the elements of this list using the
      * accumulator function
      */
@@ -388,12 +384,11 @@ public final class PersistentList<T> implements Iterable<T>, Serializable {
         return java.util.List.copyOf(result); // Return an unmodifiable copy to preserve immutability
     }
 
-    private static final long serialVersionUID = 1L;
-
     /**
      * Intercepts the serialization process. Instead of serializing the
      * recursive list, the JVM will serialize the flat proxy object.
      */
+    @Serial
     private Object writeReplace() {
         return new SerializationProxy<>(this);
     }
@@ -402,36 +397,10 @@ public final class PersistentList<T> implements Iterable<T>, Serializable {
      * Prevents the default deserialization of this class to protect against
      * stream tampering.
      */
+    @Serial
     @ExcludeFromCoverageGeneratedReport
     private void readObject(@SuppressWarnings("unused") java.io.ObjectInputStream stream) throws java.io.InvalidObjectException {
         throw new java.io.InvalidObjectException("Serialization proxy required");
-    }
-
-    /**
-     * A private static proxy class that flattens the list into an array for
-     * safe network transit.
-     */
-    private static class SerializationProxy<T> implements java.io.Serializable {
-
-        private static final long serialVersionUID = 1L;
-        private final Object[] elements;
-
-        SerializationProxy(PersistentList<T> list) {
-            this.elements = new Object[list.size()];
-            int i = 0;
-            for (T element : list) {
-                this.elements[i++] = element;
-            }
-        }
-
-        /**
-         * Intercepts the deserialization process. The JVM will replace the
-         * proxy with the result of this method.
-         */
-        @SuppressWarnings("unchecked")
-        private Object readResolve() {
-            return PersistentList.of((T[]) elements);
-        }
     }
 
     @Override
@@ -508,5 +477,34 @@ public final class PersistentList<T> implements Iterable<T>, Serializable {
         }
         sb.append("]");
         return sb.toString();
+    }
+
+    /**
+     * A private static proxy class that flattens the list into an array for
+     * safe network transit.
+     */
+    private static class SerializationProxy<T> implements java.io.Serializable {
+
+        @Serial
+        private static final long serialVersionUID = 1L;
+        private final Object[] elements;
+
+        SerializationProxy(PersistentList<T> list) {
+            this.elements = new Object[list.size()];
+            int i = 0;
+            for (T element : list) {
+                this.elements[i++] = element;
+            }
+        }
+
+        /**
+         * Intercepts the deserialization process. The JVM will replace the
+         * proxy with the result of this method.
+         */
+        @Serial
+        @SuppressWarnings("unchecked")
+        private Object readResolve() {
+            return PersistentList.of((T[]) elements);
+        }
     }
 }

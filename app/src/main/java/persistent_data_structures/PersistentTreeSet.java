@@ -1,5 +1,6 @@
 package persistent_data_structures;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -20,27 +21,6 @@ public final class PersistentTreeSet<E extends Comparable<E>> implements Iterabl
 
     private final int size;
     private final Node<E> root;
-
-    /**
-     * Internal node structure for the AVL tree. Immutable by design. The height
-     * is cached to ensure O(1) balance factor calculations.
-     */
-    private static final class Node<E> implements Serializable {
-
-        private static final long serialVersionUID = 1L;
-
-        final E element;
-        final int height;
-        final Node<E> left;
-        final Node<E> right;
-
-        Node(E element, int height, Node<E> left, Node<E> right) {
-            this.element = element;
-            this.height = height;
-            this.left = left;
-            this.right = right;
-        }
-    }
 
     private PersistentTreeSet(int size, Node<E> root) {
         this.size = size;
@@ -315,11 +295,10 @@ public final class PersistentTreeSet<E extends Comparable<E>> implements Iterabl
         if (this == o) {
             return true;
         }
-        if (!(o instanceof PersistentTreeSet)) {
+        if (!(o instanceof PersistentTreeSet<?> that)) {
             return false;
         }
 
-        PersistentTreeSet<?> that = (PersistentTreeSet<?>) o;
         if (this.size != that.size) {
             return false;
         }
@@ -369,16 +348,41 @@ public final class PersistentTreeSet<E extends Comparable<E>> implements Iterabl
         return sb.toString();
     }
 
+    @Serial
     private Object writeReplace() {
         return new SerializationProxy<>(this);
     }
 
+    @Serial
     private void readObject(@SuppressWarnings("unused") java.io.ObjectInputStream stream) throws java.io.InvalidObjectException {
         throw new java.io.InvalidObjectException("Serialization proxy required");
     }
 
+    /**
+     * Internal node structure for the AVL tree. Immutable by design. The height
+     * is cached to ensure O(1) balance factor calculations.
+     */
+    private static final class Node<E> implements Serializable {
+
+        @Serial
+        private static final long serialVersionUID = 1L;
+
+        final E element;
+        final int height;
+        final Node<E> left;
+        final Node<E> right;
+
+        Node(E element, int height, Node<E> left, Node<E> right) {
+            this.element = element;
+            this.height = height;
+            this.left = left;
+            this.right = right;
+        }
+    }
+
     private static class SerializationProxy<E extends Comparable<E>> implements Serializable {
 
+        @Serial
         private static final long serialVersionUID = 1L;
         private final Object[] elements;
 
@@ -390,6 +394,7 @@ public final class PersistentTreeSet<E extends Comparable<E>> implements Iterabl
             }
         }
 
+        @Serial
         @SuppressWarnings("unchecked")
         private Object readResolve() {
             PersistentTreeSet<E> set = PersistentTreeSet.empty();

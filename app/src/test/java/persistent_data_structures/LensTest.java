@@ -1,32 +1,23 @@
 package persistent_data_structures;
 
+import org.junit.jupiter.api.Test;
+
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 class LensTest {
-
-    // Test Domain Models
-    record Address(String street, String city) {}
-    record User(String name, Address address) {}
-    record AppState(String theme, User currentUser) {}
 
     // Setup Base Lenses (using Lens.of)
     private final Lens<AppState, User> userLens = Lens.of(
             AppState::currentUser,
             (state, newUser) -> new AppState(state.theme(), newUser)
     );
-
     private final Lens<User, Address> addressLens = Lens.of(
             User::address,
             (user, newAddress) -> new User(user.name(), newAddress)
     );
-
     private final Lens<Address, String> cityLens = Lens.of(
             Address::city,
             (address, newCity) -> new Address(address.street(), newCity)
@@ -52,8 +43,6 @@ class LensTest {
         assertEquals("Setter function must not be null", npe.getMessage());
     }
 
-    // --- 2. Core Operation Tests ---
-
     @Test
     void get_returnsCorrectPart() {
         Address address = new Address("Avenyn 1", "Gothenburg");
@@ -78,6 +67,8 @@ class LensTest {
         assertEquals("GOTHENBURG", updated.city());
     }
 
+    // --- 2. Core Operation Tests ---
+
     @Test
     void modify_withNullModifier_throwsException() {
         Address original = new Address("Avenyn 1", "Gothenburg");
@@ -85,12 +76,10 @@ class LensTest {
         assertEquals("Modifier function must not be null", npe.getMessage());
     }
 
-    // --- 3. Composition Tests ---
-
     @Test
     void compose_createsWorkingDeepLens() {
         AppState initialState = new AppState("Dark", new User("Alice", new Address("Avenyn 1", "Gothenburg")));
-        
+
         Lens<AppState, String> appToCityLens = userLens.compose(addressLens).compose(cityLens);
 
         // Test Deep Get
@@ -109,30 +98,42 @@ class LensTest {
         assertEquals("Lens to compose with must not be null", npe.getMessage());
     }
 
-    // --- 4. Lens Laws Validation ---
-
     @Test
     void lensLaw_getPut_leavesWholeUnchanged() {
         // Law: set(whole, get(whole)) == whole
-        // Note: For records, .equals() checks value equality, which is what we want to verify 
+        // Note: For records, .equals() checks value equality, which is what we want to verify
         // that the structural data is identical.
         Address original = new Address("Avenyn 1", "Gothenburg");
-        
+
         String extractedCity = cityLens.get(original);
         Address rebuilt = cityLens.set(original, extractedCity);
-        
+
         assertEquals(original, rebuilt, "Get-Put law violated: rebuilding with the extracted part should equal the original");
     }
+
+    // --- 3. Composition Tests ---
 
     @Test
     void lensLaw_putGet_returnsWhatWasPut() {
         // Law: get(set(whole, part)) == part
         Address original = new Address("Avenyn 1", "Gothenburg");
         String newCity = "Stockholm";
-        
+
         Address updatedAddress = cityLens.set(original, newCity);
         String extractedAfterPut = cityLens.get(updatedAddress);
-        
+
         assertEquals(newCity, extractedAfterPut, "Put-Get law violated: getting after setting should return the exact set value");
+    }
+
+    // Test Domain Models
+    record Address(String street, String city) {
+    }
+
+    // --- 4. Lens Laws Validation ---
+
+    record User(String name, Address address) {
+    }
+
+    record AppState(String theme, User currentUser) {
     }
 }

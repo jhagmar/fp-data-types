@@ -1,5 +1,7 @@
 package persistent_data_structures;
 
+import org.junit.jupiter.api.Test;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
@@ -11,15 +13,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 class PersistentHashMapTest {
 
@@ -202,39 +196,6 @@ class PersistentHashMapTest {
     }
 
     // --- Hash Collision Tests ---
-    /**
-     * A helper class that deliberately forces hash collisions to ensure full
-     * coverage of the CollisionNode logic.
-     */
-    static class CollidingKey {
-
-        final int id;
-
-        CollidingKey(int id) {
-            this.id = id;
-        }
-
-        @Override
-        public int hashCode() {
-            return 42; // Force identical hash codes
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (!(o instanceof CollidingKey)) {
-                return false;
-            }
-            return id == ((CollidingKey) o).id;
-        }
-
-        @Override
-        public String toString() {
-            return "K" + id;
-        }
-    }
 
     @Test
     void testHashCollisionsPutAndGet() {
@@ -338,7 +299,7 @@ class PersistentHashMapTest {
 
         // --- Cover CollisionNode.put() missing branches ---
         // Branch: put a key with a DIFFERENT hash into an existing CollisionNode.
-        // This forces the CollisionNode to merge with the new LeafNode, pushing both 
+        // This forces the CollisionNode to merge with the new LeafNode, pushing both
         // down into a newly created BitmapIndexedNode.
         PersistentHashMap<CollidingKey, String> mapAfterDiffPut = map.put(kDifferentHash, "C");
         assertEquals(3, mapAfterDiffPut.size());
@@ -454,7 +415,7 @@ class PersistentHashMapTest {
         );
 
         // 3. Create a new map instance with the bogus node via reflection.
-        // (We construct a new one rather than mutating PersistentHashMap.empty() 
+        // (We construct a new one rather than mutating PersistentHashMap.empty()
         // to avoid breaking the singleton for other tests).
         java.lang.reflect.Constructor<?> constructor = PersistentHashMap.class.getDeclaredConstructor(int.class, nodeInterface);
         constructor.setAccessible(true);
@@ -581,5 +542,39 @@ class PersistentHashMapTest {
 
         assertTrue(exception.getCause() instanceof java.io.InvalidObjectException);
         assertEquals("Serialization proxy required", exception.getCause().getMessage());
+    }
+
+    /**
+     * A helper class that deliberately forces hash collisions to ensure full
+     * coverage of the CollisionNode logic.
+     */
+    static class CollidingKey {
+
+        final int id;
+
+        CollidingKey(int id) {
+            this.id = id;
+        }
+
+        @Override
+        public int hashCode() {
+            return 42; // Force identical hash codes
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (!(o instanceof CollidingKey)) {
+                return false;
+            }
+            return id == ((CollidingKey) o).id;
+        }
+
+        @Override
+        public String toString() {
+            return "K" + id;
+        }
     }
 }

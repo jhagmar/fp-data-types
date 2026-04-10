@@ -1,3 +1,4 @@
 package state_modelling;
 
-public record ProductId(String id) {}
+public record ProductId(String id) {
+}

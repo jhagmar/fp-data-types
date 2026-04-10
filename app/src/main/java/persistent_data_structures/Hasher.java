@@ -3,8 +3,8 @@ package persistent_data_structures;
 /**
  * An object capable of incrementally computing a hash code over a sequence of elements.
  * <p>
- * Implementations of this interface are typically stateful and are designed to be 
- * used as local variables for accumulating hash codes iteratively, avoiding the 
+ * Implementations of this interface are typically stateful and are designed to be
+ * used as local variables for accumulating hash codes iteratively, avoiding the
  * need for temporary array allocations.
  */
 public interface Hasher {
@@ -19,7 +19,7 @@ public interface Hasher {
     Hasher hash(Object o);
 
     /**
-     * Returns the final accumulated hash code computed from all objects 
+     * Returns the final accumulated hash code computed from all objects
      * passed to {@link #hash(Object)}.
      *
      * @return the computed hash code

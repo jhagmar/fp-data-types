@@ -1,13 +1,8 @@
 package persistent_data_structures;
 
+import java.io.Serial;
 import java.io.Serializable;
-import java.util.AbstractMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Stack;
+import java.util.*;
 
 /**
  * An immutable, persistent sorted map based on an AVL tree. Lookups,
@@ -24,29 +19,6 @@ public final class PersistentTreeMap<K extends Comparable<K>, V> implements Iter
 
     private final int size;
     private final Node<K, V> root;
-
-    /**
-     * Internal node structure for the AVL tree. Immutable by design. The height
-     * is cached to ensure O(1) balance factor calculations.
-     */
-    private static final class Node<K, V> implements Serializable {
-
-        private static final long serialVersionUID = 1L;
-
-        final K key;
-        final V value;
-        final int height;
-        final Node<K, V> left;
-        final Node<K, V> right;
-
-        Node(K key, V value, int height, Node<K, V> left, Node<K, V> right) {
-            this.key = key;
-            this.value = value;
-            this.height = height;
-            this.left = left;
-            this.right = right;
-        }
-    }
 
     private PersistentTreeMap(int size, Node<K, V> root) {
         this.size = size;
@@ -126,7 +98,7 @@ public final class PersistentTreeMap<K extends Comparable<K>, V> implements Iter
      * the map previously contained a mapping for the key, the old value is
      * replaced. Path-copying ensures O(log N) structural sharing.
      *
-     * @param key key with which the specified value is to be associated
+     * @param key   key with which the specified value is to be associated
      * @param value value to be associated with the specified key
      * @return a new PersistentTreeMap containing the updated mapping
      */
@@ -134,8 +106,8 @@ public final class PersistentTreeMap<K extends Comparable<K>, V> implements Iter
         Objects.requireNonNull(key, "PersistentTreeMap does not permit null keys");
         Objects.requireNonNull(value, "PersistentTreeMap does not permit null values");
 
-        // We use an array of size 1 as a mutable reference to track if the size 
-        // actually increased during the recursive put, avoiding a full tree traversal 
+        // We use an array of size 1 as a mutable reference to track if the size
+        // actually increased during the recursive put, avoiding a full tree traversal
         // to recalculate size.
         boolean[] added = new boolean[1];
         Node<K, V> newRoot = put(root, key, value, added);
@@ -350,11 +322,10 @@ public final class PersistentTreeMap<K extends Comparable<K>, V> implements Iter
         if (this == o) {
             return true;
         }
-        if (!(o instanceof PersistentTreeMap)) {
+        if (!(o instanceof PersistentTreeMap<?, ?> that)) {
             return false;
         }
 
-        PersistentTreeMap<?, ?> that = (PersistentTreeMap<?, ?>) o;
         if (this.size != that.size) {
             return false;
         }
@@ -402,16 +373,43 @@ public final class PersistentTreeMap<K extends Comparable<K>, V> implements Iter
         return sb.toString();
     }
 
+    @Serial
     private Object writeReplace() {
         return new SerializationProxy<>(this);
     }
 
+    @Serial
     private void readObject(@SuppressWarnings("unused") java.io.ObjectInputStream stream) throws java.io.InvalidObjectException {
         throw new java.io.InvalidObjectException("Serialization proxy required");
     }
 
+    /**
+     * Internal node structure for the AVL tree. Immutable by design. The height
+     * is cached to ensure O(1) balance factor calculations.
+     */
+    private static final class Node<K, V> implements Serializable {
+
+        @Serial
+        private static final long serialVersionUID = 1L;
+
+        final K key;
+        final V value;
+        final int height;
+        final Node<K, V> left;
+        final Node<K, V> right;
+
+        Node(K key, V value, int height, Node<K, V> left, Node<K, V> right) {
+            this.key = key;
+            this.value = value;
+            this.height = height;
+            this.left = left;
+            this.right = right;
+        }
+    }
+
     private static class SerializationProxy<K extends Comparable<K>, V> implements Serializable {
 
+        @Serial
         private static final long serialVersionUID = 1L;
         private final Object[] keys;
         private final Object[] values;
@@ -427,6 +425,7 @@ public final class PersistentTreeMap<K extends Comparable<K>, V> implements Iter
             }
         }
 
+        @Serial
         @SuppressWarnings("unchecked")
         private Object readResolve() {
             PersistentTreeMap<K, V> map = PersistentTreeMap.empty();

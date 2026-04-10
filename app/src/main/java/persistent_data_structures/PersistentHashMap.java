@@ -1,13 +1,8 @@
 package persistent_data_structures;
 
+import java.io.Serial;
 import java.io.Serializable;
-import java.util.AbstractMap;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * An immutable, persistent hash map based on a Hash Array Mapped Trie (HAMT).
@@ -62,6 +57,71 @@ public final class PersistentHashMap<K, V> implements Iterable<Map.Entry<K, V>>,
     }
 
     /**
+     * Re-hashes the standard Java hashCode using the MurmurHash3 32-bit
+     * finalizer. This guarantees a good avalanche effect, ensuring a uniform
+     * distribution across the HAMT branches.
+     */
+    private static int hash(Object key) {
+        int h = key.hashCode();
+
+        // MurmurHash3 32-bit finalizer (fmix32)
+        h ^= h >>> 16;
+        h *= 0x85ebca6b;
+        h ^= h >>> 13;
+        h *= 0xc2b2ae35;
+        h ^= h >>> 16;
+
+        return h;
+    }
+
+    /**
+     * Isolates the 5 bits for the current level (shift) and converts it into a
+     * bitmask. E.g., if the 5 bits represent the number 3, this returns 1000
+     * (binary).
+     */
+    private static int bitpos(int hash, int shift) {
+        return 1 << ((hash >>> shift) & LEVEL_MASK);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <K, V> Node<K, V> emptyNode() {
+        return (Node<K, V>) EmptyNode.INSTANCE;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <K, V> Node<K, V> mergeLeaves(int shift, Node<K, V> n1, Node<K, V> n2) {
+        int h1 = getHash(n1);
+        int h2 = getHash(n2);
+
+        if (h1 == h2) {
+            return new CollisionNode<K, V>(h1, new LeafNode[]{(LeafNode<K, V>) n1, (LeafNode<K, V>) n2});
+        }
+
+        int bit1 = bitpos(h1, shift);
+        int bit2 = bitpos(h2, shift);
+
+        if (bit1 == bit2) {
+            Node<K, V> child = mergeLeaves(shift + BITS_PER_LEVEL, n1, n2);
+            return new BitmapIndexedNode<K, V>(bit1, new Node[]{child});
+        } else {
+            // Use unsigned comparison so the 31st bit (0x80000000) is treated as the maximum value
+            return new BitmapIndexedNode<K, V>(bit1 | bit2,
+                    Integer.compareUnsigned(bit1, bit2) < 0 ? new Node[]{n1, n2} : new Node[]{n2, n1});
+        }
+    }
+
+    private static int getHash(Node<?, ?> node) {
+        Objects.requireNonNull(node, "Node cannot be null when calculating hash");
+        if (node instanceof LeafNode) {
+            return ((LeafNode<?, ?>) node).hash;
+        }
+        if (node instanceof CollisionNode) {
+            return ((CollisionNode<?, ?>) node).hash;
+        }
+        throw new IllegalStateException("Unexpected node type in merge: " + node.getClass().getSimpleName());
+    }
+
+    /**
      * Checks if the map is empty.
      *
      * @return {@code true} if the map is empty, {@code false} otherwise
@@ -106,7 +166,7 @@ public final class PersistentHashMap<K, V> implements Iterable<Map.Entry<K, V>>,
     /**
      * Associates the specified value with the specified key in the map.
      *
-     * @param key the key with which the specified value is to be associated
+     * @param key   the key with which the specified value is to be associated
      * @param value the value to be associated with the specified key
      * @return a new PersistentHashMap instance with the specified key-value
      * mapping added
@@ -147,31 +207,155 @@ public final class PersistentHashMap<K, V> implements Iterable<Map.Entry<K, V>>,
         return new PersistentHashMap<>(size - 1, newRoot);
     }
 
-    /**
-     * Re-hashes the standard Java hashCode using the MurmurHash3 32-bit
-     * finalizer. This guarantees a good avalanche effect, ensuring a uniform
-     * distribution across the HAMT branches.
-     */
-    private static int hash(Object key) {
-        int h = key.hashCode();
+    @Override
+    public Iterator<Map.Entry<K, V>> iterator() {
+        return new Iterator<Map.Entry<K, V>>() {
+            // Max depth of a 32-bit hash processed 5 bits at a time is ceil(32/5) = 7.
+            // Using a fixed size array of 8 bypasses the overhead of java.util.Stack.
+            private final Node<K, V>[] nodePath = new Node[8];
+            private final int[] indexPath = new int[8];
+            private int depth = -1;
 
-        // MurmurHash3 32-bit finalizer (fmix32)
-        h ^= h >>> 16;
-        h *= 0x85ebca6b;
-        h ^= h >>> 13;
-        h *= 0xc2b2ae35;
-        h ^= h >>> 16;
+            private LeafNode<K, V> nextLeaf;
 
+            // State for fully iterating through Hash Collisions
+            private CollisionNode<K, V> currentCollision;
+            private int collisionIdx;
+
+            {
+                if (root != EmptyNode.INSTANCE) {
+                    depth = 0;
+                    nodePath[0] = root;
+                    indexPath[0] = 0;
+                    advance();
+                }
+            }
+
+            private void advance() {
+                // Drain current collision node if we are inside one
+                if (currentCollision != null && collisionIdx < currentCollision.leaves.length) {
+                    nextLeaf = currentCollision.leaves[collisionIdx++];
+                    return;
+                }
+                currentCollision = null; // Clear out of collision state
+
+                while (depth >= 0) {
+                    Node<K, V> node = nodePath[depth];
+                    int idx = indexPath[depth];
+
+                    switch (node) {
+                        case LeafNode<K, V> leafNode -> {
+                            nextLeaf = leafNode;
+                            depth--; // Step back up
+
+                            return; // Step back up
+                        }
+                        case CollisionNode<K, V> collisionNode -> {
+                            currentCollision = collisionNode;
+                            collisionIdx = 1; // Prepare the iterator to pick up at index 1 next time
+
+                            nextLeaf = currentCollision.leaves[0];
+                            depth--;
+                            return;
+                        }
+                        case BitmapIndexedNode<K, V> bin -> {
+                            if (idx < bin.nodes.length) {
+                                indexPath[depth]++; // Increment index for when we backtrack to this node
+
+                                // Push child to the path stack
+                                depth++;
+                                nodePath[depth] = bin.nodes[idx];
+                                indexPath[depth] = 0;
+                            } else {
+                                depth--; // Exhausted this node, step back up
+                            }
+                        }
+                        default -> {
+                            Objects.requireNonNull(node, "Node cannot be null during iteration");
+                            throw new IllegalStateException("Unknown node type in iterator: " + node.getClass().getSimpleName());
+                        }
+                    }
+                }
+                nextLeaf = null; // Exhausted the entire tree
+            }
+
+            @Override
+            public boolean hasNext() {
+                return nextLeaf != null;
+            }
+
+            @Override
+            public Map.Entry<K, V> next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+                Map.Entry<K, V> entry = new AbstractMap.SimpleImmutableEntry<>(nextLeaf.key, nextLeaf.value);
+                advance();
+                return entry;
+            }
+        };
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof PersistentHashMap)) {
+            return false;
+        }
+
+        PersistentHashMap<K, V> that = (PersistentHashMap<K, V>) o;
+        if (this.size != that.size) {
+            return false;
+        }
+
+        for (Map.Entry<K, V> entry : this) {
+            Optional<V> thatValue = that.get(entry.getKey());
+            if (thatValue.isEmpty() || !Objects.equals(entry.getValue(), thatValue.get())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int h = 0;
+        // HAMT traversal order is non-deterministic relative to insertion,
+        // so the hash function must be commutative (like addition).
+        for (Map.Entry<K, V> entry : this) {
+            h += entry.getKey().hashCode() ^ entry.getValue().hashCode();
+        }
         return h;
     }
 
-    /**
-     * Isolates the 5 bits for the current level (shift) and converts it into a
-     * bitmask. E.g., if the 5 bits represent the number 3, this returns 1000
-     * (binary).
-     */
-    private static int bitpos(int hash, int shift) {
-        return 1 << ((hash >>> shift) & LEVEL_MASK);
+    @Override
+    public String toString() {
+        if (isEmpty()) {
+            return "{}";
+        }
+
+        StringBuilder sb = new StringBuilder("{");
+        Iterator<Map.Entry<K, V>> it = iterator();
+        while (it.hasNext()) {
+            Map.Entry<K, V> entry = it.next();
+            sb.append(entry.getKey()).append("=").append(entry.getValue());
+            if (it.hasNext()) {
+                sb.append(", ");
+            }
+        }
+        return sb.append("}").toString();
+    }
+
+    @Serial
+    private Object writeReplace() {
+        return new SerializationProxy<>(this);
+    }
+
+    @Serial
+    private void readObject(@SuppressWarnings("unused") java.io.ObjectInputStream stream) throws java.io.InvalidObjectException {
+        throw new java.io.InvalidObjectException("Serialization proxy required");
     }
 
     // Nodes do not implement Serializable, as the Proxy handles all persistence.
@@ -405,189 +589,9 @@ public final class PersistentHashMap<K, V> implements Iterable<Map.Entry<K, V>>,
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private static <K, V> Node<K, V> emptyNode() {
-        return (Node<K, V>) EmptyNode.INSTANCE;
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <K, V> Node<K, V> mergeLeaves(int shift, Node<K, V> n1, Node<K, V> n2) {
-        int h1 = getHash(n1);
-        int h2 = getHash(n2);
-
-        if (h1 == h2) {
-            return new CollisionNode<>(h1, new LeafNode[]{(LeafNode<K, V>) n1, (LeafNode<K, V>) n2});
-        }
-
-        int bit1 = bitpos(h1, shift);
-        int bit2 = bitpos(h2, shift);
-
-        if (bit1 == bit2) {
-            Node<K, V> child = mergeLeaves(shift + BITS_PER_LEVEL, n1, n2);
-            return new BitmapIndexedNode<>(bit1, new Node[]{child});
-        } else {
-            // Use unsigned comparison so the 31st bit (0x80000000) is treated as the maximum value
-            return new BitmapIndexedNode<>(bit1 | bit2,
-                    Integer.compareUnsigned(bit1, bit2) < 0 ? new Node[]{n1, n2} : new Node[]{n2, n1});
-        }
-    }
-
-    private static int getHash(Node<?, ?> node) {
-        Objects.requireNonNull(node, "Node cannot be null when calculating hash");
-        if (node instanceof LeafNode) {
-            return ((LeafNode<?, ?>) node).hash;
-        }
-        if (node instanceof CollisionNode) {
-            return ((CollisionNode<?, ?>) node).hash;
-        }
-        throw new IllegalStateException("Unexpected node type in merge: " + node.getClass().getSimpleName());
-    }
-
-    @Override
-    public Iterator<Map.Entry<K, V>> iterator() {
-        return new Iterator<Map.Entry<K, V>>() {
-            // Max depth of a 32-bit hash processed 5 bits at a time is ceil(32/5) = 7.
-            // Using a fixed size array of 8 bypasses the overhead of java.util.Stack.
-            private final Node<K, V>[] nodePath = new Node[8];
-            private final int[] indexPath = new int[8];
-            private int depth = -1;
-
-            private LeafNode<K, V> nextLeaf;
-
-            // State for fully iterating through Hash Collisions
-            private CollisionNode<K, V> currentCollision;
-            private int collisionIdx;
-
-            {
-                if (root != EmptyNode.INSTANCE) {
-                    depth = 0;
-                    nodePath[0] = root;
-                    indexPath[0] = 0;
-                    advance();
-                }
-            }
-
-            private void advance() {
-                // Drain current collision node if we are inside one
-                if (currentCollision != null && collisionIdx < currentCollision.leaves.length) {
-                    nextLeaf = currentCollision.leaves[collisionIdx++];
-                    return;
-                }
-                currentCollision = null; // Clear out of collision state
-
-                while (depth >= 0) {
-                    Node<K, V> node = nodePath[depth];
-                    int idx = indexPath[depth];
-
-                    if (node instanceof LeafNode) {
-                        nextLeaf = (LeafNode<K, V>) node;
-                        depth--; // Step back up
-                        return;
-                    } else if (node instanceof CollisionNode) {
-                        currentCollision = (CollisionNode<K, V>) node;
-                        collisionIdx = 1; // Prepare the iterator to pick up at index 1 next time
-                        nextLeaf = currentCollision.leaves[0];
-                        depth--;
-                        return;
-                    } else if (node instanceof BitmapIndexedNode) {
-                        BitmapIndexedNode<K, V> bin = (BitmapIndexedNode<K, V>) node;
-                        if (idx < bin.nodes.length) {
-                            indexPath[depth]++; // Increment index for when we backtrack to this node
-
-                            // Push child to the path stack
-                            depth++;
-                            nodePath[depth] = bin.nodes[idx];
-                            indexPath[depth] = 0;
-                        } else {
-                            depth--; // Exhausted this node, step back up
-                        }
-                    } else {
-                        Objects.requireNonNull(node, "Node cannot be null during iteration");
-                        throw new IllegalStateException("Unknown node type in iterator: " + node.getClass().getSimpleName());
-                    }
-                }
-                nextLeaf = null; // Exhausted the entire tree
-            }
-
-            @Override
-            public boolean hasNext() {
-                return nextLeaf != null;
-            }
-
-            @Override
-            public Map.Entry<K, V> next() {
-                if (!hasNext()) {
-                    throw new NoSuchElementException();
-                }
-                Map.Entry<K, V> entry = new AbstractMap.SimpleImmutableEntry<>(nextLeaf.key, nextLeaf.value);
-                advance();
-                return entry;
-            }
-        };
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (!(o instanceof PersistentHashMap)) {
-            return false;
-        }
-
-        PersistentHashMap<K, V> that = (PersistentHashMap<K, V>) o;
-        if (this.size != that.size) {
-            return false;
-        }
-
-        for (Map.Entry<K, V> entry : this) {
-            Optional<V> thatValue = that.get(entry.getKey());
-            if (thatValue.isEmpty() || !Objects.equals(entry.getValue(), thatValue.get())) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int h = 0;
-        // HAMT traversal order is non-deterministic relative to insertion,
-        // so the hash function must be commutative (like addition).
-        for (Map.Entry<K, V> entry : this) {
-            h += entry.getKey().hashCode() ^ entry.getValue().hashCode();
-        }
-        return h;
-    }
-
-    @Override
-    public String toString() {
-        if (isEmpty()) {
-            return "{}";
-        }
-
-        StringBuilder sb = new StringBuilder("{");
-        Iterator<Map.Entry<K, V>> it = iterator();
-        while (it.hasNext()) {
-            Map.Entry<K, V> entry = it.next();
-            sb.append(entry.getKey()).append("=").append(entry.getValue());
-            if (it.hasNext()) {
-                sb.append(", ");
-            }
-        }
-        return sb.append("}").toString();
-    }
-
-    private Object writeReplace() {
-        return new SerializationProxy<>(this);
-    }
-
-    private void readObject(@SuppressWarnings("unused") java.io.ObjectInputStream stream) throws java.io.InvalidObjectException {
-        throw new java.io.InvalidObjectException("Serialization proxy required");
-    }
-
     private static class SerializationProxy<K, V> implements Serializable {
 
+        @Serial
         private static final long serialVersionUID = 1L;
         private final Object[] keys;
         private final Object[] values;
@@ -603,6 +607,7 @@ public final class PersistentHashMap<K, V> implements Iterable<Map.Entry<K, V>>,
             }
         }
 
+        @Serial
         @SuppressWarnings("unchecked")
         private Object readResolve() {
             PersistentHashMap<K, V> map = PersistentHashMap.empty();

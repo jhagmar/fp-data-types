@@ -1,5 +1,7 @@
 package persistent_data_structures;
 
+import org.junit.jupiter.api.Test;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
@@ -9,15 +11,7 @@ import java.lang.reflect.Method;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 class PersistentHashSetTest {
 
@@ -72,7 +66,7 @@ class PersistentHashSetTest {
     @Test
     void testNullElementsRejected() {
         PersistentHashSet<String> set = PersistentHashSet.empty();
-        
+
         NullPointerException exception1 = assertThrows(NullPointerException.class, () -> set.add(null));
         assertEquals("PersistentHashSet does not permit null elements", exception1.getMessage());
 
@@ -174,39 +168,6 @@ class PersistentHashSetTest {
     }
 
     // --- Hash Collision Tests ---
-    /**
-     * A helper class that deliberately forces hash collisions to ensure full
-     * coverage of the CollisionNode logic.
-     */
-    static class CollidingElement {
-
-        final int id;
-
-        CollidingElement(int id) {
-            this.id = id;
-        }
-
-        @Override
-        public int hashCode() {
-            return 42; // Force identical hash codes
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (!(o instanceof CollidingElement)) {
-                return false;
-            }
-            return id == ((CollidingElement) o).id;
-        }
-
-        @Override
-        public String toString() {
-            return "E" + id;
-        }
-    }
 
     @Test
     void testHashCollisionsAddAndContains() {
@@ -517,5 +478,39 @@ class PersistentHashSetTest {
 
         assertTrue(exception.getCause() instanceof java.io.InvalidObjectException);
         assertEquals("Serialization proxy required", exception.getCause().getMessage());
+    }
+
+    /**
+     * A helper class that deliberately forces hash collisions to ensure full
+     * coverage of the CollisionNode logic.
+     */
+    static class CollidingElement {
+
+        final int id;
+
+        CollidingElement(int id) {
+            this.id = id;
+        }
+
+        @Override
+        public int hashCode() {
+            return 42; // Force identical hash codes
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (!(o instanceof CollidingElement)) {
+                return false;
+            }
+            return id == ((CollidingElement) o).id;
+        }
+
+        @Override
+        public String toString() {
+            return "E" + id;
+        }
     }
 }
