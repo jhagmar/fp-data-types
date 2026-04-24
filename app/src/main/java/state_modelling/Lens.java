@@ -1,116 +1,53 @@
-package persistent_data_structures;
-
-import java.util.Objects;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.function.UnaryOperator;
+package state_modelling;
 
 /**
- * A Lens is a functional reference to a substructure within a larger immutable
- * data structure. It provides a way to read, write, and modify a deeply nested
- * property while returning a newly constructed immutable copy of the whole
- * structure.
- *
+ * A functional Lens for immutable state traversal and mutation.
  * <p>
- * A well-behaved Lens should satisfy the following optical laws:
- * <ul>
- * <li><b>Get-Put:</b> If you get a part and immediately set it back, the whole
- * remains unchanged. ({@code set(whole, get(whole)) == whole})</li>
- * <li><b>Put-Get:</b> If you set a part and then get it, you get exactly what
- * you just set. ({@code get(set(whole, part)) == part})</li>
- * </ul>
+ * A Lens operates on a specific {@code Whole} (W) to view or update a specific {@code Part} (P).
+ * By keeping the interface purely generic, Lenses can be composed together to drill down
+ * through deeply nested immutable data structures without hardcoding paths.
+ * </p>
  *
- * @param <Whole> The type of the complex, larger immutable object.
- * @param <Part>  The type of the focused sub-property.
+ * @param <W> The "Whole" (the parent data structure)
+ * @param <P> The "Part" (the specific component being focused on)
  */
-public final class Lens<Whole, Part> {
-
-    private final Function<Whole, Part> getter;
-    private final BiFunction<Whole, Part, Whole> setter;
+public interface Lens<W, P> {
 
     /**
-     * Constructs a new Lens. Consider using the static {@link #of} factory
-     * method for a fluent API.
-     *
-     * @param getter A function that extracts the Part from the Whole. Must not
-     *               be null.
-     * @param setter A function that takes the Whole and a new Part, returning a
-     *               new Whole. Must not be null.
+     * Extracts the part from the whole.
      */
-    private Lens(Function<Whole, Part> getter, BiFunction<Whole, Part, Whole> setter) {
-        this.getter = Objects.requireNonNull(getter, "Getter function must not be null");
-        this.setter = Objects.requireNonNull(setter, "Setter function must not be null");
-    }
+    P get(W whole);
 
     /**
-     * Static factory method for creating a Lens.
-     *
-     * @param getter A function that extracts the Part from the Whole.
-     * @param setter A function that takes the Whole and a new Part, returning a
-     *               new Whole.
-     * @param <W>    The type of the Whole.
-     * @param <P>    The type of the Part.
-     * @return A new Lens instance.
+     * Creates a new instance of the whole with an updated part.
      */
-    public static <W, P> Lens<W, P> of(Function<W, P> getter, BiFunction<W, P, W> setter) {
-        return new Lens<>(getter, setter);
-    }
+    W set(W whole, P part);
 
     /**
-     * Extracts the focused part from the whole structure.
+     * Composes this lens with another lens, allowing deep, nested updates.
+     * <p>
+     * For example, composing {@code Lens<App, Root>} with {@code Lens<Root, Antenna>}
+     * yields a seamless {@code Lens<App, Antenna>}.
+     * </p>
      *
-     * @param whole The parent structure to read from.
-     * @return The extracted sub-property.
+     * @param next the next lens to apply to the part extracted by this lens
+     * @param <C>  the "Child" part targeted by the next lens
+     * @return a new composite Lens from the original Whole down to the Child part
      */
-    public Part get(Whole whole) {
-        return getter.apply(whole);
-    }
+    default <C> Lens<W, C> andThen(Lens<P, C> next) {
+        return new Lens<>() {
+            @Override
+            public C get(W whole) {
+                // Get the Part from the Whole, then get the Child from the Part
+                return next.get(Lens.this.get(whole));
+            }
 
-    /**
-     * Creates a new copy of the whole structure with the focused part replaced
-     * by the new value.
-     *
-     * @param whole   The original parent structure.
-     * @param newPart The new value to set at the focused location.
-     * @return A new immutable instance of the Whole with the updated Part.
-     */
-    public Whole set(Whole whole, Part newPart) {
-        return setter.apply(whole, newPart);
-    }
-
-    /**
-     * Modifies the focused part by applying a function to its current value,
-     * returning a new copy of the whole structure.
-     *
-     * @param whole    The original parent structure.
-     * @param modifier A function to apply to the current Part. Must not be
-     *                 null.
-     * @return A new immutable instance of the Whole with the modified Part.
-     */
-    public Whole modify(Whole whole, UnaryOperator<Part> modifier) {
-        Objects.requireNonNull(modifier, "Modifier function must not be null");
-        Part currentPart = get(whole);
-        Part updatedPart = modifier.apply(currentPart);
-        return set(whole, updatedPart);
-    }
-
-    /**
-     * Composes this Lens with another Lens, creating a new Lens that focuses on
-     * a deeper nested sub-property.
-     *
-     * @param other     The Lens to append to this path. Must not be null.
-     * @param <SubPart> The type of the deeper nested property.
-     * @return A new composed Lens targeting the SubPart.
-     */
-    public <SubPart> Lens<Whole, SubPart> compose(Lens<Part, SubPart> other) {
-        Objects.requireNonNull(other, "Lens to compose with must not be null");
-        return new Lens<>(
-                whole -> other.get(this.get(whole)),
-                (whole, newSubPart) -> {
-                    Part currentPart = this.get(whole);
-                    Part updatedPart = other.set(currentPart, newSubPart);
-                    return this.set(whole, updatedPart);
-                }
-        );
+            @Override
+            public W set(W whole, C childPart) {
+                // Set the Child into the Part, then set the updated Part into the Whole
+                P updatedPart = next.set(Lens.this.get(whole), childPart);
+                return Lens.this.set(whole, updatedPart);
+            }
+        };
     }
 }

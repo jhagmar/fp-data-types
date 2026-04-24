@@ -1,4 +1,4 @@
-package fp_types;
+package fp;
 
 import java.util.Objects;
 import java.util.Optional;

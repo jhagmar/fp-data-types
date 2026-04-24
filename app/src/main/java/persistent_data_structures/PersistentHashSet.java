@@ -28,7 +28,7 @@ import java.util.Objects;
 public final class PersistentHashSet<E> implements Iterable<E>, Serializable {
 
     // Singleton instance for the empty set to avoid unnecessary object creation.
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({"rawtypes", "unchecked"})
     private static final PersistentHashSet EMPTY = new PersistentHashSet<>(0, EmptyNode.INSTANCE);
 
     private static final int BITS_PER_LEVEL = 5;
@@ -197,6 +197,7 @@ public final class PersistentHashSet<E> implements Iterable<E>, Serializable {
         return new Iterator<E>() {
             // Max depth of a 32-bit hash processed 5 bits at a time is ceil(32/5) = 7.
             // Using a fixed size array of 8 bypasses the overhead of java.util.Stack.
+            @SuppressWarnings("unchecked")
             private final Node<E>[] nodePath = new Node[8];
             private final int[] indexPath = new int[8];
             private int depth = -1;
@@ -290,6 +291,7 @@ public final class PersistentHashSet<E> implements Iterable<E>, Serializable {
             return false;
         }
 
+        @SuppressWarnings("unchecked")
         PersistentHashSet<E> that = (PersistentHashSet<E>) o;
         if (this.size != that.size) {
             return false;

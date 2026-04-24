@@ -26,7 +26,7 @@ import java.util.*;
 public final class PersistentHashMap<K, V> implements Iterable<Map.Entry<K, V>>, Serializable {
 
     // Singleton instance for the empty map to avoid unnecessary object creation.
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({"rawtypes", "unchecked"})
     private static final PersistentHashMap EMPTY = new PersistentHashMap<>(0, EmptyNode.INSTANCE);
 
     private static final int BITS_PER_LEVEL = 5;
@@ -212,6 +212,7 @@ public final class PersistentHashMap<K, V> implements Iterable<Map.Entry<K, V>>,
         return new Iterator<Map.Entry<K, V>>() {
             // Max depth of a 32-bit hash processed 5 bits at a time is ceil(32/5) = 7.
             // Using a fixed size array of 8 bypasses the overhead of java.util.Stack.
+            @SuppressWarnings("unchecked")
             private final Node<K, V>[] nodePath = new Node[8];
             private final int[] indexPath = new int[8];
             private int depth = -1;
@@ -305,6 +306,7 @@ public final class PersistentHashMap<K, V> implements Iterable<Map.Entry<K, V>>,
             return false;
         }
 
+        @SuppressWarnings("unchecked")
         PersistentHashMap<K, V> that = (PersistentHashMap<K, V>) o;
         if (this.size != that.size) {
             return false;
